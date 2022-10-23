@@ -8,16 +8,16 @@
 using namespace std;
 
 //Provisionalmente definimos una gamma
-double  gamma_ = 0.5;
+double  gamma_ = 0;
 
 //Declaramos el numero de pasos
-int months = 10;
+int months = 1;
 
 //Declaramos el numero de empresas
 const int Nv = 10;
 
 //Declaramos el numero de caminantes 
-const int Rws = 5;
+const int Rws = 2;
 
 //Declaramos matriz de adjacencia (t) en ceros
 int matA [Nv][Nv] = {0,0}; 
@@ -41,20 +41,20 @@ int RandomInteger(int val)
 void initialization_rw(vector<vector<int>>& Visits, int Rws, int Nv)
 {
 
-    for(int i; i <Rws; i++)
+    for(int i = 0; i <Rws; i++)
     {
         Visits[i].push_back(RandomInteger(Nv));
     }
-}
+}   
 
 //funcion auxiliar para verificacion
 void print_neighbords(vector<vector<int>>& Neighbors)
 {
-    cout<<"init"<<endl;
-    for(int i; i<Nv;i++)
+    cout<<"Print Newighbords"<<endl;
+    for(int i = 0; i<Nv;i++)
     {
         int max = Neighbors[i].size();
-        for(int j; j<max;j++)
+        for(int j = 0; j<max;j++)
         {
             double a = Neighbors[i][j];
             cout<<a<<endl;
@@ -69,17 +69,20 @@ void print_neighbords(vector<vector<int>>& Neighbors)
 void update_neighbords(vector<vector<int>>& Neighbors,int pos_init, int new_position)
 {
     print_neighbords(Neighbors);
-    Neighbors[pos_init].push_back(new_position);
-	Neighbors[new_position].push_back(pos_init);
+    if(pos_init != new_position)
+    {
+        Neighbors[pos_init].push_back(new_position);
+	    Neighbors[new_position].push_back(pos_init);
+    }
     print_neighbords(Neighbors);
 }
 
 //Funcion que actualiza los grados
 void update_degree(vector<int>& Degrees, vector<vector<int>> Neighbors, int Nv)
 {
-    for(int i = 0; i <= Nv; i++)
+    for(int i = 0; i < Nv; i++)
     {
-        Degrees[i] = Neighbors.size();
+        Degrees[i] = Neighbors[i].size();
     }
 }
 
@@ -94,8 +97,7 @@ int Coin(double p)
 	}
 	else{
 		out = 0;
-	}
-	
+	}	
 	return out;
 }
 
@@ -123,8 +125,6 @@ int Transition(double gamma, int Nv, int pos_init, vector<vector<int>> Neighbors
     return new_position;
 }
 
-
-
 int main()
 {
     //Inicializamos el generador de numeros aleatorios
@@ -135,48 +135,82 @@ int main()
 
     //Verificamos la inicializacion de  visitas
     
+
     cout<<"Visits"<<endl;
-    for(int i; i<Rws;i++)
+    for(int Rw = 0; Rw<Rws;Rw++)
     {
-        
-        double a = Visits[i][0];
-        cout<<a<<endl;
-        
+        cout<<"RW "<<Rw<<endl;
+        double max = Visits[Rw].size();
+        for(int i = 0; i<max; i++)
+        {
+            double a = Visits[Rw][i];
+            cout<<a<<endl;
+        }
     }
     cout<<"___"<<endl;
-    
-    
-    /*
-    //Verificamos los grados en cero
-    cout<<"Degree"<<endl;
-    for (int i; i<Nv;i++)
-        {
-            int b = Degrees[i];
-            cout<<b<<endl;
-        }
-    cout<<"___"<<endl;*/
 
-    /*for(int month = 0; month<months; month++)
+    cout<<"Degrees"<<endl;
+    for(int i = 0; i<Nv; i++)
+    {
+        double b = Degrees[i];
+        cout<<b<<endl;
+    }
+    cout<<"___"<<endl;
+
+    for(int month = 0; month<months; month++)
         {          
             for(int Rw = 0; Rw<Rws; Rw++)
             {
                 //Hacamos el paso
                 int pos_init = Visits[Rw][month];
                 int new_position = Transition(gamma_,Nv,pos_init,Neighbors,Degrees);
+
+                //Actualizamos la visita
+                Visits[Rw].push_back(new_position);
                 
                 cout<<pos_init<<" "<<new_position<<endl;
    
+                //Actualizamos vecinos
                 update_neighbords(Neighbors,pos_init,new_position);
+
+                
                 
                 //Actualizamos el grado
                 update_degree(Degrees, Neighbors, Nv);
 
+                cout<<"AVANCE"<<endl;
 
-                //Actualizamos la visita
-                Visits[Rw].push_back(new_position);
+                
+
+                //Revisamos de nuevo los grados
+                cout<<"New_grades"<<endl;
+                for(int cont1 = 0; cont1<Nv; cont1++)
+                {
+                    double b = Degrees[cont1];
+                    cout<<b<<endl;
+                }
+                cout<<"___"<<endl;
+      
+
+
+
+                
+                
+                cout<<"New Visits"<<endl;
+                for(int cont2 = 0; cont2<Rws;cont2++)
+                {
+                    cout<<"RW "<<cont2<<endl;
+                    double max = Visits[cont2].size();
+                    for(int cont3 = 0; cont3<max; cont3++)
+                    {
+                        double a = Visits[cont2][cont3];
+                        cout<<a<<endl;
+                    }
+                }
 
             }
-        }*/
+            //Revisamos las nuevas visitas
+        }
 
 //Guardamos las visitas
 /* 
@@ -187,7 +221,7 @@ int main()
 
             //Creamos encabezado de los datos 
             Rw_data<<"Rw,"<<"N_visited,"<<"t"<<endl;
-            for (int month; month<months; month++)
+            for (int month = 0; month<months; month++)
             {
                 cout<<"funciona"<<endl;
                 Rw_data<<Rw<<","<<Visits[Rw][month]<<","<<month<<endl;
