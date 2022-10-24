@@ -8,7 +8,13 @@
 using namespace std;
 
 //Provisionalmente definimos una gamma 
-double  gamma_ = 0.90;
+double  gamma_ = 0.99;
+
+//Provisionalmente definimos una q
+double q = 0.99;
+
+//Probabilidad de crear una conexion
+double conexion = 0.40;
 
 //Declaramos el numero de pasos
 const int months = 155;
@@ -23,6 +29,28 @@ const int Rws = 386;
 int RandomInteger(int val)
 {
 	return rand()%(val);
+}
+
+//Random Choice
+int RandomChoice(vector<double> Freqs,mt19937 &gen)
+{
+	discrete_distribution<> d(Freqs.begin(),Freqs.end());
+	return d(gen);	
+}
+
+//Probabilidades de transicion para Random Choice
+vector<double> TransitionP_generation(double P, int grade) 
+{
+    double prob = (1-P)/grade;
+    vector<double> Transition;
+    //cout<<"inside Transition"<<endl;
+    //cout<<"Grade "<<grade<<" TransitionP "<<Transition.size()<<endl;
+    for(int i = 0; i < grade; i++)
+    {
+        Transition.push_back(prob);
+    }
+    //cout<<"Grade "<<grade<<" TransitionP "<<Transition.size()<<endl;
+    return Transition;
 }
 
 
@@ -71,13 +99,59 @@ int Coin(double p)
 }
 
 //Funcion que genera la transiscion
-int Transition(double gamma, int Nv, int pos_init, vector<vector<int>> Neighbors, vector<int> Degrees)
+int Transition_1(double gamma, 
+                double q, 
+                int Nv, 
+                int pos_init, 
+                vector<vector<int>> Neighbors, 
+                vector<int> Degrees,
+                mt19937 &gen)
 {
     int new_position;
     int selection = Coin(gamma);
     if (selection == 1)
     {
         if (Degrees[pos_init] == 0)
+        {
+            //cout<<"opcion 1"<<endl;
+            new_position = pos_init;
+        }
+        else
+        {
+            double degree_i = Degrees[pos_init];
+            double prob = pow(q,degree_i);
+            int selection = Coin(prob);
+            
+            if(selection ==1)
+            {
+                //cout<<"opcion 2"<<endl;
+                new_position = pos_init;
+            }
+            else
+            {
+                //cout<<"opcion 3"<<endl;
+                vector<double> TransitionP = TransitionP_generation(prob, degree_i);
+                //cout<<"Degres "<<degree_i<<" Tamaño Neighbors "<<Neighbors[pos_init].size()<<" Tamaño TransitionP "<<TransitionP.size()<<endl;
+                new_position = Neighbors[pos_init][RandomChoice(TransitionP,gen)];
+            }
+
+        }
+    }
+    else
+    {
+        //cout<<"opcion 4"<<endl;
+         new_position = RandomInteger(Nv);
+    }
+    return new_position;
+}
+
+int Transition(double gamma, int Nv, int pos_init, vector<vector<int>> Neighbors, vector<int> Degrees)
+{
+    int new_position;
+    int selection = Coin(gamma);
+    if (selection == 1)
+    {
+        if (Degrees[pos_init] == 0 )
         {
             new_position = pos_init;
         }
@@ -93,7 +167,7 @@ int Transition(double gamma, int Nv, int pos_init, vector<vector<int>> Neighbors
     return new_position;
 }
 
-void Rw_move(double gamma_, int iteration)
+void Rw_move(double gamma_, double q,int iteration,mt19937 &gen)
 {
     //Declaramos los vecinos
     vector<vector<int>> Neighbors(Nv);	
@@ -108,24 +182,39 @@ void Rw_move(double gamma_, int iteration)
         {          
             for(int Rw = 0; Rw<Rws; Rw++)
             {
-                //Hacamos el paso
+                //Hacemos el paso
                 int pos_init = Visits[Rw][month];
-                int new_position = Transition(gamma_,Nv,pos_init,Neighbors,Degrees);
-
+                int new_position = Transition_1(gamma_,q,Nv,pos_init,Neighbors,Degrees,gen);
+                //cout<<Rw<<" "<<pos_init<<" "<<new_position<<endl;
                 //Actualizamos la visita
                 Visits[Rw].push_back(new_position);
 
-                //Actualizamos vecinos
-                update_neighbords(Neighbors,pos_init,new_position);
 
-                //Actualizamos el grado
-                update_degree(Degrees, Neighbors, Nv);
+                double p_conexion = Coin(conexion);
+                if (p_conexion == 1)
+                {
+                    //Actualizamos vecinos
+                    update_neighbords(Neighbors,pos_init,new_position);
+
+                    //Actualizamos el grado
+                    update_degree(Degrees, Neighbors, Nv);
+                }
+                else
+                {
+                    new_position = pos_init;
+                    //Actualizamos vecinos
+                    update_neighbords(Neighbors,pos_init,new_position);
+
+                    //Actualizamos el grado
+                    update_degree(Degrees, Neighbors, Nv);
+                }
             }
         }
 
     //Guardamos las visitas
-     string name = "./Visits_Rw/Rw_" + to_string(gamma_) + ".dat";
-	ofstream Rw_data (name);
+    //string name = "./Visits_Rw/Rw_" + to_string(gamma_) + "_" + to_string(iteration) + ".dat";
+	string name = "./Visits_Rw/Prueba.dat";
+    ofstream Rw_data (name);
     //Creamos encabezado de los datos 
     Rw_data<<"Rw,"<<"N_visited,"<<"t"<<endl;
     for(int Rw = 0; Rw<Rws; Rw++)
@@ -133,7 +222,6 @@ void Rw_move(double gamma_, int iteration)
             for (int month = 0; month<=months; month++)
             {
                 Rw_data<<Rw<<","<<Visits[Rw][month]<<","<<month<<endl;
-                cout<<Rw<<","<<Visits[Rw][month]<<","<<month<<endl;
             }
 
 
@@ -145,10 +233,15 @@ int main()
 {
     //Inicializamos el generador de numeros aleatorios
     srand(time(NULL));
-    for(gamma_ = 0.90, gamma_ <=; gamma += 0.01)
-    {
-        Rw_move(gamma_, 1);
-    }
+    //Generador para el Random Choice
+    random_device rd;
+	mt19937 gen(rd());
+    
+    //Provisionalmete definimos la iteracion
+    int iteration = 1;
+
+    Rw_move(gamma_, q, iteration, gen);
+
     
     return 0;
 }
