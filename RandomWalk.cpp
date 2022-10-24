@@ -7,35 +7,24 @@
 #include<cmath>
 using namespace std;
 
-//Provisionalmente definimos una gamma
-double  gamma_ = 0;
+//Provisionalmente definimos una gamma 
+double  gamma_ = 0.90;
 
 //Declaramos el numero de pasos
-int months = 1;
+const int months = 155;
 
 //Declaramos el numero de empresas
-const int Nv = 10;
+const int Nv = 848;
 
 //Declaramos el numero de caminantes 
-const int Rws = 2;
-
-//Declaramos matriz de adjacencia (t) en ceros
-int matA [Nv][Nv] = {0,0}; 
-
-//Declaramos los vecinos
-vector<vector<int>> Neighbors(Nv);	
-
-//Declaramos los grados
-vector<int> Degrees(Nv,0);  
-
-//Declarmos el vector donde se guarda el historial de visitas
-vector<vector<int>> Visits(Rws);
+const int Rws = 386;
 
 //Random Integer
 int RandomInteger(int val)
 {
 	return rand()%(val);
 }
+
 
 //Inicializacion de los Rw en nodos aleatorios
 void initialization_rw(vector<vector<int>>& Visits, int Rws, int Nv)
@@ -47,34 +36,14 @@ void initialization_rw(vector<vector<int>>& Visits, int Rws, int Nv)
     }
 }   
 
-//funcion auxiliar para verificacion
-void print_neighbords(vector<vector<int>>& Neighbors)
-{
-    cout<<"Print Newighbords"<<endl;
-    for(int i = 0; i<Nv;i++)
-    {
-        int max = Neighbors[i].size();
-        for(int j = 0; j<max;j++)
-        {
-            double a = Neighbors[i][j];
-            cout<<a<<endl;
-        }
-        
-    }
-    cout<<"___"<<endl;
-}
-
-
 //Funcion que actualiza Neighbors
 void update_neighbords(vector<vector<int>>& Neighbors,int pos_init, int new_position)
 {
-    print_neighbords(Neighbors);
     if(pos_init != new_position)
     {
         Neighbors[pos_init].push_back(new_position);
 	    Neighbors[new_position].push_back(pos_init);
     }
-    print_neighbords(Neighbors);
 }
 
 //Funcion que actualiza los grados
@@ -106,7 +75,6 @@ int Transition(double gamma, int Nv, int pos_init, vector<vector<int>> Neighbors
 {
     int new_position;
     int selection = Coin(gamma);
-    cout<<"Selection "<<selection<<endl;
     if (selection == 1)
     {
         if (Degrees[pos_init] == 0)
@@ -125,37 +93,16 @@ int Transition(double gamma, int Nv, int pos_init, vector<vector<int>> Neighbors
     return new_position;
 }
 
-int main()
+void Rw_move(double gamma_, int iteration)
 {
-    //Inicializamos el generador de numeros aleatorios
-    srand(time(NULL));
-
+    //Declaramos los vecinos
+    vector<vector<int>> Neighbors(Nv);	
+    //Declaramos los grados
+    vector<int> Degrees(Nv,0);  
+    //Declarmos el vector donde se guarda el historial de visitas
+    vector<vector<int>> Visits(Rws);
     //Inicializamos la empresa inicial en aletorio
     initialization_rw(Visits, Rws, Nv);
-
-    //Verificamos la inicializacion de  visitas
-    
-
-    cout<<"Visits"<<endl;
-    for(int Rw = 0; Rw<Rws;Rw++)
-    {
-        cout<<"RW "<<Rw<<endl;
-        double max = Visits[Rw].size();
-        for(int i = 0; i<max; i++)
-        {
-            double a = Visits[Rw][i];
-            cout<<a<<endl;
-        }
-    }
-    cout<<"___"<<endl;
-
-    cout<<"Degrees"<<endl;
-    for(int i = 0; i<Nv; i++)
-    {
-        double b = Degrees[i];
-        cout<<b<<endl;
-    }
-    cout<<"___"<<endl;
 
     for(int month = 0; month<months; month++)
         {          
@@ -167,69 +114,41 @@ int main()
 
                 //Actualizamos la visita
                 Visits[Rw].push_back(new_position);
-                
-                cout<<pos_init<<" "<<new_position<<endl;
-   
+
                 //Actualizamos vecinos
                 update_neighbords(Neighbors,pos_init,new_position);
 
-                
-                
                 //Actualizamos el grado
                 update_degree(Degrees, Neighbors, Nv);
-
-                cout<<"AVANCE"<<endl;
-
-                
-
-                //Revisamos de nuevo los grados
-                cout<<"New_grades"<<endl;
-                for(int cont1 = 0; cont1<Nv; cont1++)
-                {
-                    double b = Degrees[cont1];
-                    cout<<b<<endl;
-                }
-                cout<<"___"<<endl;
-      
-
-
-
-                
-                
-                cout<<"New Visits"<<endl;
-                for(int cont2 = 0; cont2<Rws;cont2++)
-                {
-                    cout<<"RW "<<cont2<<endl;
-                    double max = Visits[cont2].size();
-                    for(int cont3 = 0; cont3<max; cont3++)
-                    {
-                        double a = Visits[cont2][cont3];
-                        cout<<a<<endl;
-                    }
-                }
-
             }
-            //Revisamos las nuevas visitas
         }
 
-//Guardamos las visitas
-/* 
+    //Guardamos las visitas
+     string name = "./Visits_Rw/Rw_" + to_string(gamma_) + ".dat";
+	ofstream Rw_data (name);
+    //Creamos encabezado de los datos 
+    Rw_data<<"Rw,"<<"N_visited,"<<"t"<<endl;
     for(int Rw = 0; Rw<Rws; Rw++)
        {
-            string name = "./Visits_Rw/Rw_" + to_string(Rw) + ".dat";
-			ofstream Rw_data (name);
-
-            //Creamos encabezado de los datos 
-            Rw_data<<"Rw,"<<"N_visited,"<<"t"<<endl;
-            for (int month = 0; month<months; month++)
+            for (int month = 0; month<=months; month++)
             {
-                cout<<"funciona"<<endl;
                 Rw_data<<Rw<<","<<Visits[Rw][month]<<","<<month<<endl;
+                cout<<Rw<<","<<Visits[Rw][month]<<","<<month<<endl;
             }
 
-            Rw_data.close();
 
         }
-*/
+    Rw_data.close();
+}
+
+int main()
+{
+    //Inicializamos el generador de numeros aleatorios
+    srand(time(NULL));
+    for(gamma_ = 0.90, gamma_ <=; gamma += 0.01)
+    {
+        Rw_move(gamma_, 1);
+    }
+    
     return 0;
 }
